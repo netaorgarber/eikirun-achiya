@@ -289,7 +289,7 @@ function saveResults(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(results
 /* ---------- shared board (JSONBin) ---------- */
 const BIN_ID = "6b02c7d8ffd5d16053d56e63";
 const BIN_KEY = "$2a$10$1OICb/2gsQPzWX6PRU3h2.ygkR4EOecoXNJ8zTzRZH0AX4bsndHEm";
-const BIN_URL = "https://jsonbin.io" + BIN_ID;
+const BIN_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
 let syncing = false, pendingSync = false, pendingPush = false, lastSync = 0, roomErr = "";
 
 async function remoteGet(){
