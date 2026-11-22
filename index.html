@@ -294,12 +294,12 @@ let syncing = false, pendingSync = false, pendingPush = false, lastSync = 0, roo
 
 async function remoteGet(){
   const r = await fetch(BIN_URL + "/latest?t=" + Date.now(), {
-    cache: "no-store",
-    headers:{ "X-Master-Key":BIN_KEY, "X-Bin-Meta":"false" }
+    headers: { "X-Master-Key": BIN_KEY }
   });
   if(!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
-  return Array.isArray(j.results) ? j.results : [];
+  const data = j.record || j;
+  return Array.isArray(data.results) ? data.results : [];
 }
 
 async function remotePut(arr){
