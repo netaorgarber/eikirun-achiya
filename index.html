@@ -148,13 +148,10 @@ table.rank tr:first-child td{font-weight:800}
     </div>
 
     <div class="card" id="roomcard">
-      <h2>📡 חדר משפחתי משותף</h2>
+      <h2>📡 לוח משותף לכל המשפחה</h2>
       <div id="roomstatus" class="small" style="margin-bottom:10px"></div>
-      <div class="row">
-        <button class="btn blue" id="roombtn">צור חדר משותף</button>
-        <button class="btn ghost" id="roomsync">🔄 רענן עכשיו</button>
-      </div>
-      <div class="hint">כדי שכולם יראו את אותן תוצאות וברכות: לוחצים "צור חדר משותף" פעם אחת, ואז שולחים לכולם את הקישור עם "שתף בוואטסאפ".</div>
+      <div class="row"><button class="btn ghost" id="roomsync">🔄 רענן עכשיו</button></div>
+      <div class="hint">התוצאות והברכות של כולם נשמרות במקום אחד, ולכן כל מי שפותח את הקישור רואה אותן.</div>
     </div>
 
     <div class="card" style="margin-top:20px">
@@ -162,7 +159,7 @@ table.rank tr:first-child td{font-weight:800}
     </div>
 
     <div id="menu-board"></div>
-    <p style="text-align:center"><button class="btn ghost" id="wipebtn" style="font-size:14px;padding:8px 16px">🗑 מחק את כל התוצאות במכשיר הזה</button></p>
+    <p style="text-align:center"><button class="btn ghost" id="wipebtn" style="font-size:14px;padding:8px 16px">🗑 מחק את כל התוצאות (אצל כולם)</button></p>
   </div>
 </div>
 
@@ -289,37 +286,20 @@ let results = [];
 function loadResults(){ try{ results = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); if(!Array.isArray(results)) results=[]; }catch(e){ results=[]; } }
 function saveResults(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(results)); }catch(e){} }
 
-/* ---------- shared room (cross-device) ---------- */
-const LS_ROOM = "wikirun_room_v1";
-const JB = "https://jsonblob.com/api/jsonBlob";
-const RA = "https://api.restful-api.dev/objects";
-let room = null, syncing = false, lastSync = 0, roomErr = "";
-try{
-  const q = new URLSearchParams(location.search).get("room");
-  if(q){ room = q; localStorage.setItem(LS_ROOM, q); }
-  else room = localStorage.getItem(LS_ROOM) || null;
-}catch(e){}
-const jhead = { "Content-Type":"application/json", "Accept":"application/json" };
-async function remoteGet(id){
-  const [p, k] = [id.slice(0,2), id.slice(3)];
-  if(p === "jb"){ const r = await fetch(JB + "/" + k, { headers:{Accept:"application/json"} }); if(!r.ok) throw new Error("HTTP " + r.status); const j = await r.json(); return Array.isArray(j.results) ? j.results : []; }
-  const r = await fetch(RA + "/" + k); if(!r.ok) throw new Error("HTTP " + r.status); const j = await r.json(); return (j.data && Array.isArray(j.data.results)) ? j.data.results : [];
-}
-async function remotePut(id, arr){
-  const [p, k] = [id.slice(0,2), id.slice(3)];
-  if(p === "jb"){ const r = await fetch(JB + "/" + k, { method:"PUT", headers:jhead, body:JSON.stringify({results:arr}) }); if(!r.ok) throw new Error("HTTP " + r.status); return; }
-  const r = await fetch(RA + "/" + k, { method:"PUT", headers:jhead, body:JSON.stringify({name:"wikirun-ahiya", data:{results:arr}}) }); if(!r.ok) throw new Error("HTTP " + r.status);
-}
-async function remoteCreate(arr){
-  try{
-    const r = await fetch(JB, { method:"POST", headers:jhead, body:JSON.stringify({results:arr}) });
-    const loc = r.headers.get("Location") || r.headers.get("location");
-    if(r.ok && loc) return "jb:" + loc.split("/").pop();
-  }catch(e){}
-  const r = await fetch(RA, { method:"POST", headers:jhead, body:JSON.stringify({name:"wikirun-ahiya", data:{results:arr}}) });
+/* ---------- shared board (JSONBin) ---------- */
+const BIN_ID = "6b02c7d8ffd5d16053d56e63";
+const BIN_KEY = "$2a$10$1OICb/2gsQPzWX6PRU3h2.ygkR4EOecoXNJ8zTzRZH0AX4bsndHEm";
+const BIN_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+let syncing = false, lastSync = 0, roomErr = "";
+async function remoteGet(){
+  const r = await fetch(BIN_URL + "/latest", { headers:{ "X-Master-Key":BIN_KEY, "X-Bin-Meta":"false" } });
   if(!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
-  return "ra:" + j.id;
+  return Array.isArray(j.results) ? j.results : [];
+}
+async function remotePut(arr){
+  const r = await fetch(BIN_URL, { method:"PUT", headers:{ "Content-Type":"application/json", "X-Master-Key":BIN_KEY }, body:JSON.stringify({results:arr}) });
+  if(!r.ok) throw new Error("HTTP " + r.status);
 }
 function mergeResults(a, b){
   const m = new Map();
@@ -332,14 +312,14 @@ function mergeResults(a, b){
   return [...m.values()];
 }
 async function syncRoom(push){
-  if(!room || syncing) return;
+  if(syncing) return;
   syncing = true;
   try{
-    const remote = await remoteGet(room);
+    const remote = await remoteGet();
     const merged = mergeResults(results, remote);
     const changedRemote = merged.length !== remote.length || merged.some(r => { const x = remote.find(y => y.id === r.id); return !x || (!x.greeting && r.greeting); });
     results = merged; saveResults();
-    if(push || changedRemote) await remotePut(room, merged);
+    if(push || changedRemote) await remotePut(merged);
     roomErr = ""; lastSync = Date.now();
   }catch(e){ roomErr = e && e.message ? e.message : "שגיאה"; }
   syncing = false;
@@ -349,26 +329,12 @@ async function syncRoom(push){
 }
 function roomUrl(){
   const u = new URL(location.href); u.hash = ""; u.search = "";
-  if(room) u.searchParams.set("room", room);
   return u.toString();
 }
 function renderRoom(){
   const el = $("roomstatus"); if(!el) return;
-  if(!room){ el.innerHTML = "⚪ לא מחובר. כל מכשיר שומר תוצאות לעצמו."; $("roombtn").style.display = ""; $("roomsync").style.display = "none"; return; }
-  $("roombtn").style.display = "none"; $("roomsync").style.display = "";
-  el.innerHTML = roomErr ? "🔴 בעיית חיבור לחדר המשותף: " + esc(roomErr) + " (נסו לרענן)" : "🟢 מחובר לחדר משפחתי משותף" + (lastSync ? " · עודכן " + new Date(lastSync).toLocaleTimeString("he-IL") : "");
+  el.innerHTML = roomErr ? "🔴 בעיית חיבור ללוח המשותף: " + esc(roomErr) + " (נסו לרענן)" : (lastSync ? "🟢 הלוח משותף לכולם · עודכן " + new Date(lastSync).toLocaleTimeString("he-IL") : "⏳ מתחבר ללוח המשותף...");
 }
-$("roombtn").onclick = async () => {
-  $("roombtn").disabled = true; $("roomstatus").textContent = "יוצר חדר...";
-  try{
-    room = await remoteCreate(results);
-    try{ localStorage.setItem(LS_ROOM, room); }catch(e){}
-    try{ history.replaceState(null, "", roomUrl()); }catch(e){}
-    roomErr = ""; lastSync = Date.now();
-    alert("החדר נוצר! עכשיו לוחצים 'שתף בוואטסאפ' ושולחים לכולם את הקישור.");
-  }catch(e){ roomErr = e.message || "שגיאה"; alert("לא הצלחנו ליצור חדר משותף: " + roomErr); }
-  $("roombtn").disabled = false; renderRoom();
-};
 $("roomsync").onclick = () => syncRoom(false);
 setInterval(() => { if(document.visibilityState === "visible" && (!$("screen-game").classList.contains("active"))) syncRoom(false); }, 15000);
 
@@ -421,7 +387,7 @@ $("sharebtn").onclick = () => {
 $("boardbtn").onclick = () => { renderBoards($("board-full")); show("screen-board"); syncRoom(false); };
 $("board-back").onclick = () => { renderMenu(); show("screen-menu"); };
 $("wipebtn").onclick = () => {
-  if(confirm(room ? "למחוק את כל התוצאות והברכות אצל כולם בחדר המשותף? אי אפשר לשחזר!" : "למחוק את כל התוצאות והברכות במכשיר הזה? אי אפשר לשחזר!")){ results = []; saveResults(); if(room){ remotePut(room, []).catch(()=>{}); } renderMenu(); }
+  if(confirm("למחוק את כל התוצאות והברכות אצל כולם? אי אפשר לשחזר!")){ results = []; saveResults(); remotePut([]).then(()=>syncRoom(false)).catch(()=>{}); renderMenu(); }
 };
 
 /* ---------- targets ---------- */
