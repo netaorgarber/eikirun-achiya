@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ויקי-ראן: המירוץ לאחיה</title>
+<style>
+:root{
+  --red:#e21b3c; --blue:#1368ce; --yellow:#d89e00; --green:#26890c;
+  --purple:#46178f; --purple2:#6a2fc0; --ink:#1c1c28; --paper:#fff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:"Heebo","Segoe UI",Arial,sans-serif;background:linear-gradient(160deg,var(--purple),#2a0c5e 70%);min-height:100vh;color:var(--ink);line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:0}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+.wrap{max-width:980px;margin:0 auto;padding:18px 14px 60px}
+h1{color:#fff;text-align:center;font-size:clamp(28px,6vw,48px);margin:10px 0 4px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+.sub{color:#e9ddff;text-align:center;margin:0 0 18px;font-size:clamp(15px,3.5vw,19px)}
+.card{background:var(--paper);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.card h2{margin:0 0 10px;font-size:22px;color:var(--purple)}
+label.lbl{font-weight:700;display:block;margin-bottom:6px}
+input[type=text],textarea{width:100%;font:inherit;font-size:18px;padding:12px 14px;border:3px solid #d9d2ea;border-radius:12px;background:#faf8ff;color:var(--ink)}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--purple2)}
+textarea{min-height:130px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{background:#efe9fb;color:var(--purple);padding:10px 16px;border-radius:999px;font-size:17px;font-weight:700;border:3px solid transparent}
+.chip.sel{background:var(--purple);color:#fff}
+.btn{display:inline-block;background:var(--green);color:#fff;font-size:20px;font-weight:800;padding:14px 26px;border-radius:14px;box-shadow:0 5px 0 rgba(0,0,0,.25);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.btn.big{font-size:24px;padding:16px 34px;width:100%}
+.btn.blue{background:var(--blue)}.btn.gold{background:var(--yellow)}.btn.red{background:var(--red)}.btn.ghost{background:#efe9fb;color:var(--purple);box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.small{font-size:14px;color:#6b6480}
+.hint{background:#fff7d6;border-radius:12px;padding:10px 14px;margin-top:10px;font-size:15px}
+
+/* HUD */
+#hud{position:sticky;top:0;z-index:50;background:var(--purple);color:#fff;padding:8px 12px calc(8px) 12px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.hud-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;max-width:980px;margin:0 auto}
+.hud-name{font-weight:800;font-size:clamp(15px,3.5vw,20px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hud-clicks{background:#fff;color:var(--purple);border-radius:16px;padding:2px 22px;text-align:center;line-height:1.05;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.hud-clicks b{display:block;font-size:clamp(38px,10vw,58px);font-weight:900}
+.hud-clicks span{font-size:12px;font-weight:700;display:block;margin-top:-2px;padding-bottom:3px}
+.hud-time{text-align:left;font-size:clamp(20px,5vw,28px);font-weight:800;font-variant-numeric:tabular-nums;direction:ltr}
+.hud-btns{display:flex;gap:8px;max-width:980px;margin:8px auto 0;flex-wrap:wrap}
+.hud-btns button{flex:1;min-width:110px;padding:9px 10px;border-radius:10px;font-weight:700;font-size:15px;background:var(--purple2);color:#fff}
+.hud-btns button:disabled{opacity:.4}
+#goalbar{max-width:980px;margin:0 auto;padding:8px 14px 0;color:#e9ddff;font-size:14px}
+
+/* Wikipedia content */
+#article{background:#fff;max-width:980px;margin:0 auto;padding:18px 16px 80px;min-height:70vh;font-size:18px;line-height:1.75;overflow-wrap:anywhere}
+#article h1.wtitle{font-size:clamp(26px,6vw,38px);color:var(--purple);margin:0 0 14px;text-shadow:none;text-align:right;border-bottom:3px solid #efe9fb;padding-bottom:8px}
+#article h2,#article h3,#article h4{color:var(--purple);margin-top:1.4em;border-bottom:1px solid #eee}
+#article a.wl{color:var(--blue);font-weight:600;text-decoration:none;border-bottom:2px solid rgba(19,104,206,.3);cursor:pointer}
+#article a.wl:hover,#article a.wl:active{background:#e6f0ff;border-bottom-color:var(--blue)}
+#article img{max-width:100%;height:auto}
+#article table{max-width:100%;display:block;overflow-x:auto;border-collapse:collapse;font-size:15px;margin:12px 0}
+#article td,#article th{border:1px solid #ddd;padding:5px 8px}
+#article table.infobox,#article .infobox{float:left;margin:0 16px 12px 0;max-width:46%;background:#faf8ff}
+#article .thumb,#article figure{max-width:100%;margin:10px 0}
+#article .thumb.tleft,#article .thumb.tright{float:none}
+@media(max-width:700px){#article table.infobox,#article .infobox{float:none;max-width:100%;margin:10px 0}}
+#article ul,#article ol{padding-right:24px;padding-left:0}
+.loading{text-align:center;padding:60px 10px;font-size:22px;color:var(--purple);font-weight:700}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.errbox{background:#ffe9ec;border:3px solid var(--red);border-radius:14px;padding:18px;margin:30px 0;text-align:center}
+
+/* Kahoot modal */
+#kmodal{position:fixed;inset:0;background:linear-gradient(160deg,var(--purple),#2a0c5e);z-index:200;display:none;flex-direction:column;padding:14px;overflow:auto}
+#kmodal.open{display:flex}
+.kq{background:#fff;border-radius:16px;padding:18px;text-align:center;font-size:clamp(20px,5vw,34px);font-weight:800;color:var(--ink);margin:6px auto 14px;max-width:900px;width:100%;box-shadow:0 5px 0 rgba(0,0,0,.25)}
+.khead{color:#fff;text-align:center;font-weight:800;font-size:18px;margin-top:4px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:900px;width:100%;margin:0 auto;flex:1;min-height:260px}
+.kans{border-radius:14px;color:#fff;font-size:clamp(18px,4.6vw,30px);font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.28);min-height:90px}
+.kans:active{transform:translateY(3px)}
+.kans .sh{font-size:1.2em}
+.k0{background:var(--red)}.k1{background:var(--blue)}.k2{background:var(--yellow)}.k3{background:var(--green)}
+.kans.dim{opacity:.25}.kans.right{outline:6px solid #fff;animation:pulse .5s 2}
+@keyframes pulse{50%{transform:scale(1.04)}}
+#kfeed{display:none;max-width:900px;width:100%;margin:12px auto 0;border-radius:16px;padding:18px;text-align:center;font-size:clamp(20px,5vw,30px);font-weight:900;color:#fff}
+#kfeed.good{background:var(--green);display:block}#kfeed.bad{background:var(--red);display:block}
+
+/* Win */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:300;display:none}
+.trophy{font-size:80px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.stat{background:#efe9fb;border-radius:14px;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:clamp(24px,6vw,38px);color:var(--purple)}
+.stat span{font-size:14px;color:#6b6480}
+.path{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.path span.p{background:#e6f0ff;color:#0d4a96;border-radius:8px;padding:3px 9px;font-size:14px}
+.path span.ar{color:#999}
+
+/* Board */
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:10px;margin:10px 0 16px;min-height:200px}
+.pod{flex:1;max-width:200px;text-align:center;color:#fff;border-radius:14px 14px 0 0;padding:10px 6px 12px}
+.pod .crown{font-size:36px;display:block;line-height:1}
+.pod .nm{font-weight:900;font-size:clamp(15px,4vw,20px);overflow-wrap:anywhere}
+.pod .sc{font-size:14px;opacity:.95}
+.pod.p1{background:var(--yellow);height:190px}.pod.p2{background:#8a8fa8;height:150px}.pod.p3{background:#b4693a;height:120px}
+table.rank{width:100%;border-collapse:collapse;font-size:16px}
+table.rank th{background:var(--purple);color:#fff;padding:8px;text-align:right}
+table.rank td{padding:8px;border-bottom:1px solid #eee}
+table.rank tr:first-child td{font-weight:800}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.gcard{color:#fff;border-radius:16px;padding:16px;box-shadow:0 5px 0 rgba(0,0,0,.25);transform:rotate(var(--rot,0deg))}
+.gcard .gt{font-size:18px;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:10px}
+.gcard .gw{font-weight:900;font-size:15px;opacity:.95}
+.gcard .gm{font-size:12px;opacity:.85}
+.empty{color:#6b6480;text-align:center;padding:16px}
+
+/* Targets modal */
+#tmodal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;display:none;align-items:center;justify-content:center;padding:14px}
+#tmodal.open{display:flex}
+#tmodal .box{background:#fff;border-radius:18px;padding:20px;max-width:460px;width:100%;max-height:90vh;overflow:auto}
+#tmodal li{font-size:19px;font-weight:700;color:var(--purple);margin:6px 0}
+</style>
+</head>
+<body>
+
+<!-- ============ MENU ============ -->
+<div id="screen-menu" class="screen active">
+  <div class="wrap">
+    <h1>🏃 ויקי-ראן: המירוץ לאחיה 🎂</h1>
+    <p class="sub">יום הולדת 17 לאחיה! מי מגיע לערך של אחיה בהכי פחות לחיצות בוויקיפדיה?</p>
+
+    <div class="card">
+      <h2>1. מי משחק עכשיו?</h2>
+      <label class="lbl" for="pname">כתבו את השם שלכם:</label>
+      <input id="pname" type="text" list="pnames" maxlength="24" placeholder="למשל: אבא, נטע, סבתא..." autocomplete="off">
+      <datalist id="pnames"></datalist>
+    </div>
+
+    <div class="card">
+      <h2>2. ערך התחלה</h2>
+      <div class="chips" id="startchips"></div>
+      <label class="lbl" for="startcustom" style="margin-top:6px">או כתבו ערך אחר בוויקיפדיה העברית:</label>
+      <input id="startcustom" type="text" placeholder="למשל: חתולים">
+      <div class="hint">היעד: להגיע לאחד מערכי אחיה! <a href="#" id="menu-targets" style="color:var(--purple);font-weight:800">רשימת היעדים המנצחים</a></div>
+    </div>
+
+    <button class="btn big" id="startbtn">🚀 יאללה, מתחילים!</button>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn blue" id="sharebtn" style="flex:1">📲 שתף בוואטסאפ</button>
+      <button class="btn ghost" id="copybtn" style="flex:1">🔗 העתק קישור</button>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <button class="btn gold big" id="boardbtn">🏆 צפה בלוח התוצאות ובכל הברכות</button>
+    </div>
+
+    <div id="menu-board"></div>
+    <p style="text-align:center"><button class="btn ghost" id="wipebtn" style="font-size:14px;padding:8px 16px">🗑 מחק את כל התוצאות במכשיר הזה</button></p>
+  </div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div id="screen-game" class="screen">
+  <div id="hud">
+    <div class="hud-top">
+      <div class="hud-name" id="h-name">—</div>
+      <div class="hud-clicks"><b id="h-clicks">0</b><span>לחיצות</span></div>
+      <div class="hud-time" id="h-time">00:00.0</div>
+    </div>
+    <div class="hud-btns">
+      <button id="h-back">↩ חזור צעד אחורה (+1)</button>
+      <button id="h-targets">🎯 רשימת היעדים המנצחים</button>
+      <button id="h-quit">✖ יציאה</button>
+    </div>
+  </div>
+  <div id="goalbar"></div>
+  <div id="article"></div>
+</div>
+
+<!-- ============ WIN ============ -->
+<div id="screen-win" class="screen">
+  <div class="wrap">
+    <div class="trophy">🏆🎉</div>
+    <h1>הגעת לאחיה!</h1>
+    <div class="card">
+      <h2 id="w-title" style="text-align:center"></h2>
+      <div class="stats">
+        <div class="stat"><b id="w-clicks">0</b><span>לחיצות</span></div>
+        <div class="stat"><b id="w-time">0</b><span>זמן</span></div>
+        <div class="stat"><b id="w-steps">0</b><span>עמודים בדרך</span></div>
+      </div>
+      <div><b>הערך שאליו הגעת:</b> <span id="w-target"></span></div>
+      <div class="path" id="w-path"></div>
+    </div>
+    <div class="card">
+      <h2>🎂 כתוב/י ברכת יום הולדת 17 לאחיה</h2>
+      <textarea id="w-greet" placeholder="מזל טוב אחיה! ..."></textarea>
+      <button class="btn big" id="w-save" style="margin-top:12px">💌 שמור ברכה וחזור למסך הראשי</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ BOARD ============ -->
+<div id="screen-board" class="screen">
+  <div class="wrap">
+    <h1>🏆 לוח התוצאות וקיר הברכות</h1>
+    <div id="board-full"></div>
+    <button class="btn big" id="board-back">⬅ חזרה למסך הראשי</button>
+  </div>
+</div>
+
+<!-- Kahoot modal -->
+<div id="kmodal">
+  <div class="khead" id="k-head">שאלה על אחיה!</div>
+  <div class="kq" id="k-q"></div>
+  <div class="kgrid" id="k-grid"></div>
+  <div id="kfeed"></div>
+</div>
+
+<!-- Targets modal -->
+<div id="tmodal"><div class="box">
+  <h2 style="margin-top:0;color:var(--purple)">🎯 היעדים המנצחים</h2>
+  <p>הגעה לכל אחד מהערכים האלה בוויקיפדיה העברית = ניצחון מיידי:</p>
+  <ul id="t-list"></ul>
+  <button class="btn big" id="t-close">הבנתי</button>
+</div></div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+/* =====================================================================
+   ✏️ כאן עורכים את שאלות הקהוט
+   כל שאלה: q = השאלה, options = 4 תשובות (אדום, כחול, צהוב, ירוק),
+   correct = המספר של התשובה הנכונה (0 = הראשונה, 1 = השנייה...).
+   אפשר להוסיף/למחוק שאלות כרצונכם. סדר התשובות על המסך מעורבב אוטומטית.
+   ===================================================================== */
+const KAHOOT_QUESTIONS = [
+  { q: "בן כמה אחיה יהיה כשתהיה לו יומולדת?",
+    options: ["17", "16", "20", "18"], correct: 0 },
+  { q: "שיעורים במה אחיה העביר לילדים לפני כמה שנים?",
+    options: ["אנגלית", "מתמטיקה", "שחמט", "כדורסל"], correct: 2 },
+  { q: "שאלה קשה במיוחד: באיזה מקום בליגה הקבוצה של אחיה בכדורסל סיימה בשנת 24/25?",
+    options: ["7", "2", "8", "9"], correct: 3 },
+  { q: "מה תאריך הלידה העברי של אחיה?",
+    options: ["י״ב כסלו", "י״ד חשוון", "כ״ט חשוון", "י״ד כסלו"], correct: 3 },
+  { q: "מה תאריך הלידה הלועזי של אחיה?",
+    options: ["י״ד כסלו", "1 בדצמבר", "18 בדצמבר", "22 בנובמבר"], correct: 1 },
+  { q: "באיזה משקל (בגרמים) אחיה נולד?",
+    options: ["2450", "2460", "2480", "4200"], correct: 1 },
+  { q: "מאיפה היה הקייטרינג בבר המצווה של אחיה?",
+    options: ["חומוס אליהו", "שלום פלאפל", "הבשרים של עמיחי", "זריפה"], correct: 0 },
+  { q: "מאיפה היה הקינוח בבר המצווה של אחיה?",
+    options: ["נטע הכין", "מוסולין", "גולדה", "זה היה כלול בקייטרינג של חומוס אליהו"], correct: 1 }
+];
+
+/* ערכי היעד המנצחים (aliases = שמות חלופיים/הפניות שנחשבים לאותו יעד) */
+const TARGETS = [
+  { label: "אחיה (דף פירושונים)", aliases: ["אחיה", "אחיה (פירושונים)", "אחיה (דף פירושונים)"] },
+  { label: "אחיה (יישוב)", aliases: ["אחיה (יישוב)"] },
+  { label: "אחיה (פקיד בבית המקדש)", aliases: ["אחיה (פקיד בבית המקדש)"] },
+  { label: "מכון אחיה", aliases: ["מכון אחיה"] },
+  { label: "אחיה השילוני", aliases: ["אחיה השילוני"] },
+  { label: "משק אחיה", aliases: ["משק אחיה"] },
+  { label: "אחיה בן אחיטוב", aliases: ["אחיה בן אחיטוב"] },
+  { label: "אחיה קמארה", aliases: ["אחיה קמארה"] }
+];
+
+/* ערכי התחלה מומלצים */
+const RANDOM_START = "__RANDOM__";
+const START_SUGGESTIONS = [RANDOM_START, "ישראל", "תנ\"ך", "כדורסל", "ירושלים", "חתולים", "כדורגל"];
+
+/* ===================================================================== */
+const API = "https://he.wikipedia.org/w/api.php";
+const LS_KEY = "wikirun_ahiya17_results_v1";
+const BLOCKED_NS = ["קובץ","תמונה","קטגוריה","עזרה","ויקיפדיה","תבנית","מיוחד","שיחה","משתמש","פורטל","מדיה","מודול","טיוטה","מדיוויקי","שיחת קובץ","שיחת קטגוריה","שיחת תבנית","שיחת משתמש","שיחת ויקיפדיה","שיחת עזרה","שיחת פורטל","שיחת מדיה","file","image","category","help","wikipedia","template","special","talk","user","portal","media","module","draft","mediawiki","wp","wikt","commons","w","d","wikidata","s","b","q","n","species","m","meta","incubator","mw"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = t => String(t || "").replace(/_/g, " ").replace(/[״”“]/g, '"').replace(/[׳’‘]/g, "'").trim();
+
+/* ---------- storage ---------- */
+let results = [];
+function loadResults(){ try{ results = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); if(!Array.isArray(results)) results=[]; }catch(e){ results=[]; } }
+function saveResults(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(results)); }catch(e){} }
+
+/* ---------- audio ---------- */
+let AC = null;
+function audio(){ try{ AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if(AC.state === "suspended") AC.resume(); }catch(e){} return AC; }
+function tone(f, t0, d, type="sine", vol=0.18){
+  const a = audio(); if(!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.value = f; o.connect(g); g.connect(a.destination);
+  const s = a.currentTime + t0;
+  g.gain.setValueAtTime(0.0001, s);
+  g.gain.exponentialRampToValueAtTime(vol, s + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, s + d);
+  o.start(s); o.stop(s + d + 0.05);
+}
+const sfx = {
+  question(){ [392,523,659,784].forEach((f,i)=>tone(f, i*0.11, 0.18, "square", 0.12)); },
+  correct(){ [523,659,784,1047].forEach((f,i)=>tone(f, i*0.1, 0.25, "triangle", 0.2)); },
+  wrong(){ tone(220,0,0.3,"sawtooth",0.18); tone(165,0.25,0.45,"sawtooth",0.18); tone(110,0.6,0.5,"sawtooth",0.16); },
+  win(){ [523,523,523,659,784,659,784,1047].forEach((f,i)=>tone(f, i*0.14, 0.3, "triangle", 0.22)); },
+  click(){ tone(660,0,0.06,"sine",0.08); }
+};
+
+/* ---------- screens ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+/* ---------- menu ---------- */
+let startChoice = START_SUGGESTIONS[0];
+function renderMenu(){
+  const chips = $("startchips");
+  chips.innerHTML = "";
+  START_SUGGESTIONS.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip" + (s === startChoice && !$("startcustom").value.trim() ? " sel" : "");
+    b.textContent = s === RANDOM_START ? "🎲 ערך רנדומלי לכל שחקן" : s;
+    b.onclick = () => { startChoice = s; $("startcustom").value = ""; renderMenu(); };
+    chips.appendChild(b);
+  });
+  const names = [...new Set(results.map(r => r.player))];
+  $("pnames").innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
+  renderBoards($("menu-board"));
+}
+$("startcustom").addEventListener("input", renderMenu);
+
+function currentStart(){ return norm($("startcustom").value) || startChoice; }
+
+function shareUrl(){
+  const u = new URL(location.href);
+  u.hash = ""; u.search = "";
+  u.searchParams.set("start", currentStart());
+  return u.toString();
+}
+$("copybtn").onclick = async () => {
+  const url = shareUrl();
+  try{ await navigator.clipboard.writeText(url); alert("הקישור הועתק! אפשר להדביק בוואטסאפ 📲"); }
+  catch(e){ prompt("העתיקו את הקישור:", url); }
+};
+$("sharebtn").onclick = () => {
+  const text = "🏃 ויקי-ראן: המירוץ לאחיה! מי מגיע לאחיה בוויקיפדיה בהכי פחות לחיצות? בואו לשחק:\n" + shareUrl();
+  window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+};
+$("boardbtn").onclick = () => { renderBoards($("board-full")); show("screen-board"); };
+$("board-back").onclick = () => { renderMenu(); show("screen-menu"); };
+$("wipebtn").onclick = () => {
+  if(confirm("למחוק את כל התוצאות והברכות במכשיר הזה? אי אפשר לשחזר!")){ results = []; saveResults(); renderMenu(); }
+};
+
+/* ---------- targets ---------- */
+function openTargets(){
+  $("t-list").innerHTML = TARGETS.map(t => `<li>${esc(t.label)}</li>`).join("");
+  $("tmodal").classList.add("open");
+}
+$("t-close").onclick = () => $("tmodal").classList.remove("open");
+$("tmodal").addEventListener("click", e => { if(e.target === $("tmodal")) $("tmodal").classList.remove("open"); });
+$("h-targets").onclick = openTargets;
+$("menu-targets").onclick = e => { e.preventDefault(); openTargets(); };
+
+function matchTarget(requested, resolved){
+  const names = [norm(requested), norm(resolved)];
+  return TARGETS.find(t => t.aliases.some(a => names.includes(norm(a)))) || null;
+}
+
+/* ---------- game state ---------- */
+let g = null;
+const fmt = ms => {
+  const t = Math.floor(ms/100)/10, m = Math.floor(t/60), s = (t - m*60).toFixed(1);
+  return String(m).padStart(2,"0") + ":" + (s.length < 4 ? "0"+s : s);
+};
+const elapsed = () => g ? g.acc + (g.running ? performance.now() - g.seg : 0) : 0;
+function timerStart(){ if(g && !g.running){ g.running = true; g.seg = performance.now(); } }
+function timerPause(){ if(g && g.running){ g.acc += performance.now() - g.seg; g.running = false; } }
+function updateHud(){
+  $("h-clicks").textContent = g.clicks;
+  $("h-time").textContent = fmt(elapsed());
+  $("h-back").disabled = g.history.length < 2 || g.busy;
+}
+setInterval(() => { if(g && !g.done && $("screen-game").classList.contains("active")) $("h-time").textContent = fmt(elapsed()); }, 100);
+
+$("startbtn").onclick = async () => {
+  const name = norm($("pname").value);
+  if(!name){ $("pname").focus(); $("pname").style.borderColor = "var(--red)"; alert("קודם כותבים שם 🙂"); return; }
+  $("pname").style.borderColor = "";
+  audio();
+  let startTitle = currentStart();
+  if(startTitle === RANDOM_START){
+    $("startbtn").disabled = true; $("startbtn").textContent = "🎲 מגרילים ערך...";
+    try{ startTitle = await randomTitle(); }
+    catch(e){ alert("לא הצלחנו להתחבר לוויקיפדיה. בדקו חיבור לאינטרנט, ופתחו את המשחק בדפדפן רגיל (כרום/ספארי) ולא בתצוגה מקדימה.\n" + (e && e.message ? e.message : "")); $("startbtn").disabled = false; $("startbtn").textContent = "🚀 יאללה, מתחילים!"; return; }
+    $("startbtn").disabled = false; $("startbtn").textContent = "🚀 יאללה, מתחילים!";
+  }
+  g = { player: name, start: startTitle, clicks: 0, actions: 0, acc: 0, seg: 0, running: false,
+        history: [], path: [], usedQ: [], busy: true, done: false, token: 0 };
+  $("h-name").textContent = "👤 " + name;
+  $("goalbar").textContent = "🎲 ערך ההתחלה שלך: " + g.start + " — המטרה: להגיע לערך של אחיה!";
+  updateHud();
+  show("screen-game");
+  loadPage(g.start, "start");
+};
+
+$("h-quit").onclick = () => {
+  if(confirm("לצאת מהמשחק? ההתקדמות תימחק.")){ if(g) g.done = true; g = null; $("kmodal").classList.remove("open"); renderMenu(); show("screen-menu"); }
+};
+$("h-back").onclick = () => {
+  if(!g || g.busy || g.history.length < 2) return;
+  go(g.history[g.history.length - 2], "back");
+};
+
+/* ---------- wikipedia ---------- */
+async function apiGet(params){
+  const u = new URL(API);
+  Object.entries({ format:"json", formatversion:"2", origin:"*", ...params }).forEach(([k,v]) => u.searchParams.set(k,v));
+  const r = await fetch(u.toString());
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+const cache = new Map();
+async function fetchArticle(title){
+  const key = norm(title);
+  if(cache.has(key)) return cache.get(key);
+  let out;
+  try{
+    const d = await apiGet({ action:"parse", page:title, prop:"text", redirects:"1", disableeditsection:"1", disablelimitreport:"1", disabletoc:"1" });
+    if(d.error) throw new Error(d.error.info || "הערך לא נמצא");
+    out = { title: d.parse.title, html: d.parse.text };
+  }catch(e1){
+    /* גיבוי: REST API של ויקיפדיה */
+    try{
+      const r = await fetch("https://he.wikipedia.org/api/rest_v1/page/html/" + encodeURIComponent(title.replace(/ /g,"_")) + "?redirect=true");
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      const html = await r.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      let t = title;
+      try{ t = decodeURIComponent(new URL(r.url).pathname.split("/page/html/")[1] || title).replace(/_/g," "); }catch(_){}
+      out = { title: t, html: doc.body ? doc.body.innerHTML : html };
+    }catch(e2){ throw new Error("שגיאת רשת: " + (e1.message || e1) + " / " + (e2.message || e2)); }
+  }
+  cache.set(key, out);
+  return out;
+}
+async function randomTitle(){
+  try{
+    const d = await apiGet({ action:"query", list:"random", rnnamespace:"0", rnlimit:"1" });
+    return d.query.random[0].title;
+  }catch(e){
+    const r = await fetch("https://he.wikipedia.org/api/rest_v1/page/random/title");
+    if(!r.ok) throw e;
+    const j = await r.json();
+    return (j.items[0].title || "").replace(/_/g," ");
+  }
+}
+
+function validTitleFromHref(href){
+  if(!href) return null;
+  let h = href.trim();
+  if(h.startsWith("//")) h = "https:" + h;
+  let path;
+  if(h.startsWith("/wiki/")) path = h.slice(6);
+  else if(h.startsWith("./")) path = h.slice(2);
+  else {
+    try{ const u = new URL(h, "https://he.wikipedia.org"); if(u.hostname !== "he.wikipedia.org" || !u.pathname.startsWith("/wiki/")) return null; path = u.pathname.slice(6); }
+    catch(e){ return null; }
+  }
+  path = path.split("#")[0].split("?")[0];
+  if(!path) return null;
+  let t; try{ t = decodeURIComponent(path); }catch(e){ t = path; }
+  t = t.replace(/_/g, " ").trim();
+  if(!t) return null;
+  const ci = t.indexOf(":");
+  if(ci > 0){
+    const ns = t.slice(0, ci).trim().toLowerCase();
+    if(BLOCKED_NS.includes(ns)) return null;
+  }
+  return t;
+}
+
+function renderArticle(title, html){
+  const doc = new DOMParser().parseFromString("<div id='r'>" + html + "</div>", "text/html");
+  const root = doc.getElementById("r");
+  root.querySelectorAll("script,style,link,.navbox,.vertical-navbox,.navbox-inner,.reflist,ol.references,.mw-references-wrap,sup.reference,.mw-editsection,.catlinks,.printfooter,.noprint,.sistersitebox,.mw-empty-elt,.metadata,.ambox,.authority-control,.mw-authority-control,.mbox-small").forEach(n => n.remove());
+  root.querySelectorAll("a").forEach(a => {
+    const t = a.classList.contains("new") ? null : validTitleFromHref(a.getAttribute("href"));
+    if(t){
+      a.className = "wl";
+      a.dataset.title = t;
+      a.removeAttribute("href"); a.removeAttribute("title"); a.removeAttribute("target");
+    } else {
+      const span = doc.createElement("span");
+      while(a.firstChild) span.appendChild(a.firstChild);
+      a.replaceWith(span);
+    }
+  });
+  root.querySelectorAll("img").forEach(img => {
+    let s = img.getAttribute("src") || "";
+    if(s.startsWith("//")) img.setAttribute("src", "https:" + s);
+    img.removeAttribute("srcset"); img.setAttribute("loading","lazy");
+  });
+  $("article").innerHTML = "<h1 class='wtitle'>" + esc(title) + "</h1>";
+  $("article").appendChild(document.importNode(root, true));
+  window.scrollTo(0, 0);
+}
+$("article").addEventListener("click", e => {
+  const a = e.target.closest("a.wl");
+  if(!a || !g || g.busy || g.done) return;
+  e.preventDefault();
+  sfx.click();
+  go(a.dataset.title, "link");
+});
+
+/* ---------- navigation ---------- */
+async function go(title, mode){
+  if(!g || g.busy) return;
+  g.busy = true;
+  g.clicks++; g.actions++;
+  updateHud();
+  let target = title, how = mode;
+  if(g.actions % 3 === 0){
+    timerPause();
+    const ok = await askKahoot();
+    timerStart();
+    if(!ok){
+      g.clicks++; updateHud();
+      $("article").innerHTML = "<div class='loading'><span class='spin'>🚀</span> משגרים אותך לערך רנדומלי...</div>";
+      try{ target = await randomTitle(); how = "random"; }
+      catch(e){ target = title; how = mode; }
+    }
+  }
+  await loadPage(target, how);
+}
+
+async function loadPage(title, mode){
+  const myToken = ++g.token;
+  $("article").innerHTML = "<div class='loading'><span class='spin'>⏳</span> טוען את הערך...</div>";
+  g.busy = true; updateHud();
+  let data;
+  try{
+    data = await fetchArticle(title);
+  }catch(err){
+    if(!g || myToken !== g.token) return;
+    $("article").innerHTML = "<div class='errbox'><h2>😕 לא הצלחנו לטעון את הערך</h2><p>" + esc(title) + "<br>" + esc(err.message || "") + "</p>" +
+      "<button class='btn' id='retry'>🔄 נסה שוב</button> " + (mode === "start" ? "<button class='btn ghost' id='tomenu'>חזרה לתפריט</button>" : "") + "</div>";
+    g.busy = false; updateHud();
+    $("retry").onclick = () => loadPage(title, mode);
+    if($("tomenu")) $("tomenu").onclick = () => { g.done = true; g = null; renderMenu(); show("screen-menu"); };
+    return;
+  }
+  if(!g || myToken !== g.token) return;
+  if(mode === "back") g.history.pop(); else g.history.push(data.title);
+  g.path.push(mode === "back" ? "↩ " + data.title : (mode === "random" ? "🚀 " + data.title : data.title));
+  renderArticle(data.title, data.html);
+  if(mode === "start") { g.acc = 0; timerStart(); }
+  const hit = mode === "start" ? null : matchTarget(title, data.title);
+  g.busy = false; updateHud();
+  if(hit) win(hit, data.title);
+}
+
+/* ---------- kahoot ---------- */
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function pickQuestion(){
+  if(!KAHOOT_QUESTIONS.length) return null;
+  let pool = KAHOOT_QUESTIONS.map((_,i)=>i).filter(i => !g.usedQ.includes(i));
+  if(!pool.length){ g.usedQ = []; pool = KAHOOT_QUESTIONS.map((_,i)=>i); }
+  const idx = pool[Math.floor(Math.random()*pool.length)];
+  g.usedQ.push(idx);
+  return KAHOOT_QUESTIONS[idx];
+}
+const SHAPES = ["▲","◆","●","■"];
+function askKahoot(){
+  return new Promise(resolve => {
+    const q = pickQuestion();
+    if(!q){ resolve(true); return; }
+    const opts = shuffle(q.options.map((t,i) => ({ t, ok: i === q.correct })));
+    $("k-q").textContent = q.q;
+    $("kfeed").className = ""; $("kfeed").style.display = ""; $("kfeed").textContent = "";
+    $("k-head").textContent = "🎂 שאלה על אחיה! (הטיימר עצור)";
+    const grid = $("k-grid"); grid.innerHTML = "";
+    let answered = false;
+    opts.forEach((o, i) => {
+      const b = document.createElement("button");
+      b.className = "kans k" + i;
+      b.innerHTML = "<span class='sh'>" + SHAPES[i] + "</span><span>" + esc(o.t) + "</span>";
+      b.onclick = () => {
+        if(answered) return; answered = true;
+        const btns = [...grid.children];
+        btns.forEach((x, j) => { if(opts[j].ok) x.classList.add("right"); else x.classList.add("dim"); });
+        const feed = $("kfeed");
+        if(o.ok){ sfx.correct(); feed.className = "good"; feed.textContent = "כל הכבוד! 🎉"; }
+        else { sfx.wrong(); feed.className = "bad"; feed.innerHTML = "אופס! טעית בשאלה על אחיה – שוגרת לערך רנדומלי! 🚀<br><small>(+1 לחיצות)</small>"; }
+        setTimeout(() => { $("kmodal").classList.remove("open"); resolve(o.ok); }, o.ok ? 1500 : 2600);
+      };
+      grid.appendChild(b);
+    });
+    $("kmodal").classList.add("open");
+    $("kmodal").scrollTop = 0;
+    sfx.question();
+  });
+}
+
+/* ---------- win ---------- */
+let lastResultId = null;
+function win(target, resolvedTitle){
+  timerPause();
+  g.done = true;
+  const ms = Math.round(elapsed());
+  const res = {
+    id: Date.now() + "-" + Math.floor(Math.random()*1000),
+    player: g.player, clicks: g.clicks, ms, target: resolvedTitle || target.label,
+    start: g.start, path: g.path.slice(), greeting: "", date: new Date().toISOString()
+  };
+  results.push(res); saveResults(); lastResultId = res.id;
+  $("w-title").textContent = g.player + ", כל הכבוד!";
+  $("w-clicks").textContent = res.clicks;
+  $("w-time").textContent = fmt(ms);
+  $("w-steps").textContent = res.path.length;
+  $("w-target").textContent = res.target;
+  $("w-path").innerHTML = res.path.map((p,i) => (i ? "<span class='ar'>←</span>" : "") + "<span class='p'>" + esc(p) + "</span>").join("");
+  $("w-greet").value = "";
+  show("screen-win");
+  sfx.win(); confetti();
+}
+$("w-save").onclick = () => {
+  const txt = $("w-greet").value.trim();
+  if(!txt){ $("w-greet").focus(); alert("כתבו לאחיה ברכה קטנה 🎂"); return; }
+  const r = results.find(x => x.id === lastResultId);
+  if(r){ r.greeting = txt; saveResults(); }
+  g = null;
+  renderMenu(); show("screen-menu");
+};
+
+function confetti(){
+  const c = $("confetti"); c.style.display = "block"; c.width = innerWidth; c.height = innerHeight;
+  const ctx = c.getContext("2d");
+  const cols = ["#e21b3c","#1368ce","#d89e00","#26890c","#ff66c4","#fff"];
+  const ps = Array.from({length: 200}, () => ({ x: Math.random()*c.width, y: -20 - Math.random()*c.height*0.6, w: 6+Math.random()*8, h: 8+Math.random()*10,
+    vy: 2+Math.random()*4, vx: -2+Math.random()*4, col: cols[Math.floor(Math.random()*cols.length)], rot: Math.random()*6, vr: -0.25+Math.random()*0.5 }));
+  const t0 = performance.now();
+  (function frame(now){
+    ctx.clearRect(0,0,c.width,c.height);
+    ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.rot += p.vr; if(p.y > c.height + 20 && now - t0 < 4500){ p.y = -20; p.x = Math.random()*c.width; }
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore(); });
+    if(now - t0 < 7000) requestAnimationFrame(frame); else { ctx.clearRect(0,0,c.width,c.height); c.style.display = "none"; }
+  })(t0);
+}
+
+/* ---------- boards ---------- */
+function renderBoards(el){
+  const ranked = results.slice().sort((a,b) => a.clicks - b.clicks || a.ms - b.ms);
+  let html = "<div class='card'><h2>🏆 טבלת האלופים</h2>";
+  if(!ranked.length){ html += "<div class='empty'>עדיין אף אחד לא סיים. מי יהיה הראשון? 🏃</div>"; }
+  else {
+    const top = ranked.slice(0,3);
+    const order = [top[1], top[0], top[2]].map((r,i) => r ? { r, cls: ["p2","p1","p3"][i], crown: i === 1 ? "👑" : ["🥈","","🥉"][i] } : null).filter(Boolean);
+    html += "<div class='podium'>" + order.map(o => "<div class='pod " + o.cls + "'><span class='crown'>" + o.crown + "</span><div class='nm'>" + esc(o.r.player) + "</div><div class='sc'>" + o.r.clicks + " לחיצות<br>" + fmt(o.r.ms) + "</div></div>").join("") + "</div>";
+    html += "<div style='overflow-x:auto'><table class='rank'><tr><th>#</th><th>שחקן</th><th>לחיצות</th><th>זמן</th><th>יעד</th></tr>" +
+      ranked.map((r,i) => "<tr><td>" + (i === 0 ? "👑" : i+1) + "</td><td>" + esc(r.player) + "</td><td>" + r.clicks + "</td><td style='direction:ltr;text-align:right'>" + fmt(r.ms) + "</td><td>" + esc(r.target) + "</td></tr>").join("") + "</table></div>";
+  }
+  html += "</div>";
+  const greets = results.filter(r => r.greeting).sort((a,b) => (a.date < b.date ? -1 : 1));
+  const cc = ["var(--red)","var(--blue)","var(--yellow)","var(--green)","var(--purple2)"];
+  html += "<div class='card'><h2>💌 קיר הברכות לאחיה</h2>";
+  if(!greets.length) html += "<div class='empty'>עדיין אין ברכות. סיימו משחק וכתבו ברכה! 🎂</div>";
+  else html += "<div class='wall'>" + greets.map((r,i) => "<div class='gcard' style='background:" + cc[i % cc.length] + ";--rot:" + (((i*37)%5)-2) + "deg'><div class='gt'>" + esc(r.greeting) + "</div><div class='gw'>— " + esc(r.player) + "</div><div class='gm'>" + r.clicks + " לחיצות · הגיע ל: " + esc(r.target) + "</div></div>").join("") + "</div>";
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+/* ---------- init ---------- */
+loadResults();
+(function initFromUrl(){
+  try{
+    const s = new URLSearchParams(location.search).get("start");
+    if(s){ const n = norm(s); if(START_SUGGESTIONS.includes(n) || n === RANDOM_START) startChoice = n; else $("startcustom").value = n; }
+  }catch(e){}
+})();
+renderMenu();
+</script>
+</body>
+</html>
