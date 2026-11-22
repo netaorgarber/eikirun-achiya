@@ -289,18 +289,28 @@ function saveResults(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(results
 /* ---------- shared board (JSONBin) ---------- */
 const BIN_ID = "6b02c7d8ffd5d16053d56e63";
 const BIN_KEY = "$2a$10$1OICb/2gsQPzWX6PRU3h2.ygkR4EOecoXNJ8zTzRZH0AX4bsndHEm";
-const BIN_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
-let syncing = false, lastSync = 0, roomErr = "";
+const BIN_URL = "https://jsonbin.io" + BIN_ID;
+let syncing = false, pendingSync = false, pendingPush = false, lastSync = 0, roomErr = "";
+
 async function remoteGet(){
-  const r = await fetch(BIN_URL + "/latest", { headers:{ "X-Master-Key":BIN_KEY, "X-Bin-Meta":"false" } });
+  const r = await fetch(BIN_URL + "/latest?t=" + Date.now(), {
+    cache: "no-store",
+    headers:{ "X-Master-Key":BIN_KEY, "X-Bin-Meta":"false" }
+  });
   if(!r.ok) throw new Error("HTTP " + r.status);
   const j = await r.json();
   return Array.isArray(j.results) ? j.results : [];
 }
+
 async function remotePut(arr){
-  const r = await fetch(BIN_URL, { method:"PUT", headers:{ "Content-Type":"application/json", "X-Master-Key":BIN_KEY }, body:JSON.stringify({results:arr}) });
+  const r = await fetch(BIN_URL, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json", "X-Master-Key":BIN_KEY },
+    body:JSON.stringify({results:arr})
+  });
   if(!r.ok) throw new Error("HTTP " + r.status);
 }
+
 function mergeResults(a, b){
   const m = new Map();
   [...a, ...b].forEach(r => {
@@ -311,22 +321,40 @@ function mergeResults(a, b){
   });
   return [...m.values()];
 }
+
 async function syncRoom(push){
-  if(syncing) return;
+  if(syncing){
+    pendingSync = true;
+    if(push) pendingPush = true;
+    return;
+  }
   syncing = true;
   try{
     const remote = await remoteGet();
     const merged = mergeResults(results, remote);
-    const changedRemote = merged.length !== remote.length || merged.some(r => { const x = remote.find(y => y.id === r.id); return !x || (!x.greeting && r.greeting); });
+    const changedRemote = merged.length !== remote.length || merged.some(r => {
+      const x = remote.find(y => y.id === r.id);
+      return !x || (!x.greeting && r.greeting);
+    });
     results = merged; saveResults();
     if(push || changedRemote) await remotePut(merged);
     roomErr = ""; lastSync = Date.now();
-  }catch(e){ roomErr = e && e.message ? e.message : "שגיאה"; }
+  }catch(e){
+    roomErr = e && e.message ? e.message : "שגיאה";
+  }
   syncing = false;
   renderRoom();
   if($("screen-menu").classList.contains("active")) renderBoards($("menu-board"));
   if($("screen-board").classList.contains("active")) renderBoards($("board-full"));
+
+  if(pendingSync){
+    const nextPush = pendingPush;
+    pendingSync = false;
+    pendingPush = false;
+    await syncRoom(nextPush);
+  }
 }
+
 function roomUrl(){
   const u = new URL(location.href); u.hash = ""; u.search = "";
   return u.toString();
@@ -337,8 +365,6 @@ function renderRoom(){
 }
 $("roomsync").onclick = () => syncRoom(false);
 setInterval(() => { if(document.visibilityState === "visible" && (!$("screen-game").classList.contains("active"))) syncRoom(false); }, 15000);
-
-/* ---------- audio ---------- */
 let AC = null;
 function audio(){ try{ AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if(AC.state === "suspended") AC.resume(); }catch(e){} return AC; }
 function tone(f, t0, d, type="sine", vol=0.18){
